@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Edu ID Card Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2canvas -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* ID Card Specific Styles - LANDSCAPE */
+        .id-card-container {
+            width: 500px;
+            height: 315px;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            /* Subtle pattern */
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Form Inputs */
+        .custom-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Custom File Input Button Style */
+        .file-input-button {
+            padding: 4px 8px;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .file-input-button:hover {
+            background-color: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        /* Scrollbar hide utility for flag container */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+    </style>
+</head>
+<body class="text-slate-700 flex flex-col min-h-screen" onload="detectLocation()">
+
+    <!-- Main Content -->
+    <div class="flex-grow container mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row gap-8 items-start justify-center">
+
+            <!-- LEFT COLUMN: INPUT FORM -->
+            <div class="w-full lg:w-1/2 p-6 lg:p-8 space-y-6 border-r border-gray-200 bg-white rounded-xl shadow-lg">
+                <header>
+                    <h1 class="text-3xl font-bold mb-6 text-center" id="mainTitle">
+                        <i class="fa-solid fa-graduation-cap mr-2 text-indigo-600"></i>
+                        <span class="text-indigo-600">GENERATE</span> <span class="text-fuchsia-600">ID</span> <span class="text-emerald-600">TO</span> <span class="text-indigo-500">GET</span> <span class="text-amber-600">GEMINI</span> <span class="text-sky-600">PRO</span> 
+                        <i class="fa-solid fa-id-card-clip ml-2 text-emerald-600"></i>
+                    </h1>
+                    <p class="text-center text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">Create professional student ID cards instantly. Free online tool for educational institutions.</p>
+                    <p class="text-center text-gray-600 mb-4 text-xs">If the card doesn't work, contact me on <a href="https://wa.me/+923139242996" target="_blank" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium transition-colors duration-200"><i class="fab fa-whatsapp mr-1"></i>WhatsApp</a> or <a href="https://m.me/elitekamruls" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"><i class="fab fa-facebook-messenger mr-1"></i>Messenger</a>. Also, if you need a <span class="text-purple-600 font-semibold hover:text-purple-700 transition-colors duration-200">Gemini AI Pro subscription</span>, contact me for a very cheap price</p>
+                    
+                    <!-- Country Selector -->
+                    <div class="flex justify-center mb-4">
+                        <div class="bg-white rounded-lg shadow-md p-3 border border-gray-200">
+                            <div class="flex flex-col items-center space-y-3">
+                                <!-- Detection Status -->
+                                <div id="detectionStatus" class="hidden">
+                                    <div class="flex items-center text-blue-600">
+                                        <i class="fa-solid fa-spinner fa-spin mr-2"></i>
+                                        <span class="text-sm">🌍 Detecting your location...</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Country Controls -->
+                                <div class="flex items-center justify-center space-x-2">
+                                    <div class="flex space-x-2">
+                                        <button id="switchToBD" onclick="switchCountry('BD')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to Bangladesh"><img src="https://flagcdn.com/20x15/bd.png" alt="Bangladesh flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇧🇩</span></button>
+                                        <button id="switchToIN" onclick="switchCountry('IN')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to India"><img src="https://flagcdn.com/20x15/in.png" alt="India flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇮🇳</span></button>
+                                        <button id="switchToUK" onclick="switchCountry('UK')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to United Kingdom"><img src="https://flagcdn.com/20x15/gb.png" alt="UK flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇬🇧</span></button>
+                                        <button id="switchToNG" onclick="switchCountry('NG')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to Nigeria"><img src="https://flagcdn.com/20x15/ng.png" alt="Nigeria flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇳🇬</span></button>
+                                        <button id="switchToPK" onclick="switchCountry('PK')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to Pakistan"><img src="https://flagcdn.com/20x15/pk.png" alt="Pakistan flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇵🇰</span></button>
+                                        <button id="switchToAU" onclick="switchCountry('AU')" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200" title="Switch to Australia"><img src="https://flagcdn.com/20x15/au.png" alt="Australia flag" class="w-5 h-3 rounded-sm"><span style="display: none;">🇦🇺</span></button>
+                                    </div>
+                                    <div id="countryIndicator" class="flex items-center justify-center">
+                                        <img src="https://flagcdn.com/24x18/pk.png" alt="Pakistan flag" class="w-6 h-4 rounded-sm shadow-sm border border-gray-200">
+                                        <span style="display: none;" class="text-lg">🇵🇰</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Detection Info and Controls -->
+                                <div class="flex items-center justify-center space-x-2">
+                                    <div class="text-xs text-gray-500">
+                                        <i class="fa-solid fa-info-circle mr-1"></i>
+                                        Auto-detects your location via IP address
+                                    </div>
+                                    <button onclick="detectLocation()" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors duration-200" title="Refresh page">
+                                        <i class="fa-solid fa-refresh mr-1"></i>
+                                        Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="space-y-3 sm:space-y-4">
+                    <label for="collegeNameInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-university mr-2 text-indigo-600"></i>College Name:</label>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                        <input type="text" id="collegeNameInput" value="University of Science & Tech" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm sm:text-base">
+                        <button id="randomCollegeBtn" onclick="setRandom('college')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-all duration-200"><i class="fa-solid fa-shuffle mr-1"></i>Pick College</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="idInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-id-card mr-2 text-purple-600"></i>ID Number:</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="idInput" value="SUST23CSE001" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <button id="randomIdBtn" onclick="setRandom('id')" class="px-2 py-1 bg-purple-500 text-white text-xs rounded-md hover:bg-purple-600 transition-all duration-200"><i class="fa-solid fa-hashtag mr-1"></i>Generate</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="studentEmailInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-envelope mr-2 text-green-600"></i>Student Email:</label>
+                    <div class="flex space-x-2">
+                        <input type="email" id="studentEmailInput" value="student@uni.edu.pk" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <button id="copyEmailBtn" onclick="copyToClipboard('studentEmailInput')" class="px-2 py-1 bg-green-500 text-white text-xs rounded-md hover:bg-green-600 transition-all duration-200"><i class="fa-solid fa-copy mr-1"></i>Copy</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="mobileInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-mobile-screen-button mr-2 text-orange-500"></i>Mobile:</label>
+                    <div class="flex space-x-2">
+                        <input type="tel" id="mobileInput" value="+92 300 1234567" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <button id="randomMobileBtn" onclick="setRandom('mobile')" class="px-2 py-1 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600 transition-all duration-200"><i class="fa-solid fa-mobile-screen-button mr-1"></i>New Number</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="classInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-book-open mr-2 text-blue-600"></i>Class:</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="classInput" value="B.Sc Software Engineering" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <button id="randomClassBtn" onclick="setRandom('class')" class="px-2 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-all duration-200"><i class="fa-solid fa-shuffle mr-1"></i>Pick Class</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="dobInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-calendar-day mr-2 text-rose-500"></i>Date Of Birth:</label>
+                    <input type="date" id="dobInput" value="2004-06-15" oninput="updateCard()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div class="space-y-4">
+                    <label for="addressInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-location-dot mr-2 text-teal-600"></i>Address:</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="addressInput" value="Township, Bannu, KP" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                        <button id="randomAddressBtn" onclick="setRandom('address')" class="px-2 py-1 bg-teal-500 text-white text-xs rounded-md hover:bg-teal-600 transition-all duration-200"><i class="fa-solid fa-location-dot mr-1"></i>Pick Location</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label for="issueDateInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-calendar-days mr-2 text-indigo-600"></i>Issue Date:</label>
+                        <input type="date" id="issueDateInput" value="2025-10-01" oninput="updateCard()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label for="validDateInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-calendar-check mr-2 text-green-600"></i>Valid Until:</label>
+                        <input type="date" id="validDateInput" value="2029-10-01" oninput="updateCard()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label for="websiteInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-globe mr-2 text-sky-600"></i>Website:</label>
+                    <input type="text" id="websiteInput" value="www.sust.edu.pk" oninput="updateCard()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div class="space-y-4">
+                    <label for="nameInput" class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-user mr-2 text-pink-600"></i>Student Name:</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="nameInput" value="JONE SMITH" oninput="updateCard()" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm" style="text-transform: uppercase;">
+                        <button id="randomNameBtn" onclick="setRandom('name')" class="px-2 py-1 bg-pink-500 text-white text-xs rounded-md hover:bg-pink-600 transition-all duration-200"><i class="fa-solid fa-user mr-1"></i>Pick Name</button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-image mr-2 text-red-500"></i>Student Photo</label>
+                    <div class="flex space-x-2 items-center">
+                        <button id="randomPhotoBtn" onclick="setRandom('photo')" class="px-2 py-2 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 transition-all duration-200"><i class="fa-solid fa-image mr-1"></i>New Photo</button>
+                        <label for="studentPhotoUpload" class="file-input-button h-8 flex-grow">Choose File</label>
+                        <input type="file" id="studentPhotoUpload" accept="image/*" class="hidden" onchange="handleImage(this, 'cardPhoto')">
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-shield-halved mr-2 text-yellow-500"></i>College Logo</label>
+                    <div class="flex space-x-2 items-center">
+                        <button id="randomLogoBtn" onclick="setRandom('logo')" class="px-2 py-2 bg-yellow-500 text-white text-xs rounded-md hover:bg-yellow-600 transition-all duration-200"><i class="fa-solid fa-shield-halved mr-1"></i>New Logo</button>
+                        <label for="collegeLogoUpload" class="file-input-button h-8 flex-grow">Choose File</label>
+                        <input type="file" id="collegeLogoUpload" accept="image/*" class="hidden" onchange="handleImage(this, 'cardLogo')">
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-gray-700"><i class="fa-solid fa-pen-fancy mr-2 text-cyan-600"></i>Principal Signature</label>
+                    <div class="flex space-x-2 items-center mb-2">
+                        <button id="randomSignatureBtn" onclick="setRandom('signature')" class="px-2 py-2 bg-cyan-500 text-white text-xs rounded-md hover:bg-cyan-600 transition-all duration-200"><i class="fa-solid fa-pen-fancy mr-1"></i>New Signature</button>
+                        <label for="principalSignatureUpload" class="file-input-button h-8 flex-grow">Choose File</label>
+                        <input type="file" id="principalSignatureUpload" accept="image/*" class="hidden" onchange="handleImage(this, 'cardSig')">
+                    </div>
+                    <div class="flex space-x-2">
+                        <input type="text" id="principalNameInput" placeholder="Principal Name" oninput="document.getElementById('cardSigText').innerText = this.value" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs">
+                        <button id="randomPrincipalNameBtn" onclick="setRandom('principalName')" class="px-2 py-1 bg-emerald-500 text-white text-xs rounded-md hover:bg-emerald-600 transition-all duration-200"><i class="fa-solid fa-pen-nib mr-1"></i>Pick Name</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: PREVIEW (Kept as is) -->
+            <div class="w-full lg:w-1/2 flex flex-col items-center sticky top-12">
+                <div class="mb-2">
+                    <h3 class="text-xl font-bold text-slate-800">Live ID Card Preview</h3>
+                </div>
+
+                <!-- THE CARD -->
+                <div id="idCardPreview" class="id-card-container relative bg-white border border-slate-200 shadow-xl mb-6">
+                    
+                    <!-- Content Row -->
+                    <div class="flex h-full pt-4 pb-2 px-4 gap-4 relative z-10">
+                        <!-- Left Side -->
+                        <div class="w-[35%] flex flex-col items-center pt-2 border-r border-dashed border-slate-300 pr-3">
+                            <!-- Logo -->
+                            <div class="w-12 h-12 mb-3">
+                                <img id="cardLogo" src="https://via.placeholder.com/100?text=LOGO" class="w-full h-full object-contain">
+                            </div>
+                            <!-- Photo -->
+                            <div class="w-24 h-28 bg-slate-100 rounded-lg border-2 border-white shadow overflow-hidden mb-2">
+                                <img id="cardPhoto" src="https://via.placeholder.com/150?text=PHOTO" class="w-full h-full object-cover">
+                            </div>
+                            <!-- Signature -->
+                            <div class="mt-auto text-center w-full pb-2">
+                                <img id="cardSig" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNDAiPjxwYXRoIGQ9Ik0xMCwzMCBRMzAsMTAgNTAsMjUgVDkwLDIwIiBzdHJva2U9IiMzMzQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" class="h-6 mx-auto object-contain opacity-70">
+                                <p id="cardSigText" class="text-[7px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-200 mt-1 pt-0.5">Principal Signature</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Side -->
+                        <div class="w-[65%] flex flex-col pt-1">
+                            <!-- Header -->
+                            <div class="mb-3 border-b border-slate-100 pb-2">
+                                <h2 id="cardCollege" class="text-sm font-bold text-slate-800 uppercase leading-tight">University of Science & Tech</h2>
+                                <p id="cardAddressHeader" class="text-[9px] text-slate-500 font-medium mt-0.5">Township, Bannu, KP</p>
+                            </div>
+
+                            <!-- Name Badge -->
+                            <div class="mb-4">
+                                <span class="bg-blue-600 text-white text-[9px] px-2 py-0.5 rounded shadow-sm font-bold tracking-wider inline-block mb-1">STUDENT IDENTITY CARD</span>
+                                <h1 id="cardName" class="text-xl font-bold text-slate-800 uppercase leading-none tracking-tight">MUHIB ULLAH</h1>
+                            </div>
+
+                            <!-- Info Grid -->
+                            <div class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 text-[10px] text-slate-600">
+                                <span class="font-bold text-slate-400 uppercase">ID No:</span>
+                                <span id="cardId" class="font-mono font-bold text-slate-800">SUST23CSE001</span>
+
+                                <span class="font-bold text-slate-400 uppercase">Class:</span>
+                                <span id="cardClass" class="font-medium text-slate-900 truncate">B.Sc Software Engineering</span>
+
+                                <span class="font-bold text-slate-400 uppercase">D.O.B:</span>
+                                <span id="cardDob" class="font-medium">15/06/2004</span>
+
+                                <span class="font-bold text-slate-400 uppercase">Valid:</span>
+                                <span id="cardValidity" class="font-medium text-green-600">10/25 - 10/29</span>
+
+                                <span class="font-bold text-slate-400 uppercase">Mobile:</span>
+                                <span id="cardMobile" class="font-medium">+92 300 1234567</span>
+                                
+                                <span class="font-bold text-slate-400 uppercase">Email:</span>
+                                <span id="cardEmail" class="font-medium text-[9px] lowercase truncate">student@uni.edu.pk</span>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="mt-auto flex items-center justify-between border-t border-slate-100 pt-1 pb-1">
+                                <p id="cardWebsite" class="text-[9px] text-blue-500 font-bold">www.sust.edu.pk</p>
+                                <!-- Fake Barcode -->
+                                <div class="h-5 w-16 opacity-60" style="background: repeating-linear-gradient(90deg, #1e293b, #1e293b 1px, transparent 1px, transparent 3px);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Btn -->
+                <button onclick="downloadCard()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2">
+                    <i class="fas fa-download"></i> Download Card
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === NEW FOOTER === -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="h-1 w-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-emerald-500 rounded-full mb-8"></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Brand Section -->
+                <div class="text-center md:text-left bg-gray-900/40 rounded-xl p-6 ring-1 ring-white/5 hover:ring-indigo-500/30 transition">
+                    <h3 class="text-2xl font-bold mb-4 hover:scale-105 transition-transform duration-300">
+                        <span class="text-indigo-400 hover:text-indigo-300 transition-colors duration-300">GEMINI</span>
+                        <span class="text-fuchsia-400 hover:text-fuchsia-300 transition-colors duration-300">DISCLAIMER</span>
+                    </h3>
+                    <p class="text-gray-300 mb-4 hover:text-white transition-colors duration-300 text-base"><span class="text-red-400 font-semibold">⚠️ Demo for educational use only. Do not use illegally or misuse.</span></p>
+                    <p class="text-gray-400 text-xs">Free, open-source demo. No personal data stored.</p>
+                    <p class="text-gray-400 text-xs">For testing and verification purposes only.</p>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="text-center md:text-left bg-gray-900/40 rounded-xl p-6 ring-1 ring-white/5 hover:ring-indigo-500/30 transition">
+                    <h4 class="text-lg font-semibold mb-4 text-yellow-400 hover:text-yellow-300 transition-colors duration-300"><i class="fa-solid fa-link mr-2"></i>QUICK</h4>
+                    <div class="grid grid-cols-2 gap-6">
+                        <ul class="space-y-2">
+                            <li><a href="#" class="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"><i class="fa-solid fa-angle-right mr-2 text-yellow-400"></i>Home</a></li>
+                            <li><a href="#" class="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"><i class="fa-solid fa-angle-right mr-2 text-yellow-400"></i>About</a></li>
+                            <li><a href="#" class="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"><i class="fa-solid fa-angle-right mr-2 text-yellow-400"></i>Features</a></li>
+                            <li><a href="#" class="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"><i class="fa-solid fa-angle-right mr-2 text-yellow-400"></i>Contact</a></li>
+                        </ul>
+                        <div>
+                            <h5 class="text-lg font-semibold mb-4 text-green-400 hover:text-green-300 transition-colors duration-300"><i class="fa-solid fa-hashtag mr-2"></i>IMPORTANT</h5>
+                            <ul class="space-y-2">
+                                <li><a href="https://ip8.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 inline-block"><i class="fa-solid fa-angle-right mr-2 text-green-400"></i>IP CHECK</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Author Section -->
+                <div class="text-center md:text-left bg-gray-900/40 rounded-xl p-6 ring-1 ring-white/5 hover:ring-indigo-500/30 transition">
+                    <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+                        <!-- Author Photo -->
+                        <div class="relative">
+                            <div class="w-20 h-20 rounded-full overflow-hidden border-3 border-yellow-400 shadow-lg">
+                                <!-- Using placeholder since assets/photos/01.png is local -->
+                                <img src="https://i.ibb.co/VcLZ74s5/muhib.jpg" alt="MUHIB ULLAH - Author" class="w-full h-full object-cover" loading="lazy" decoding="async" fetchpriority="low">
+                            </div>
+                            <!-- Online Status -->
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-gray-800 rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-check text-white text-xs"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Author Info -->
+                        <div class="text-center md:text-left">
+                            <h4 class="text-lg font-bold text-blue-400 hover:text-blue-300 transition-colors duration-300 mb-2" style="font-family: 'Dancing Script', cursive; letter-spacing: 1px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                                <i class="fa-solid fa-user-shield mr-2"></i>
+                                Author: MUHIB ULLAH
+                            </h4>
+                            <p class="text-gray-300 text-sm mb-2">Full-Stack Developer &amp; Automation</p>
+                            <p class="text-gray-400 text-xs">Building privacy‑first web tools</p>
+                            <p class="text-gray-400 text-xs">Open‑source &amp; automation enthusiast</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center">
+                <p class="text-gray-400 text-sm hover:text-gray-300 transition-colors duration-300">
+                    © <span id="currentYear">2025</span> All rights reserved · Made by
+                    <span class="text-yellow-400 font-semibold hover:text-yellow-300 transition-colors duration-300">Eng: Muhib Ullah <i class="fas fa-heart text-red-500 hover:text-red-400 hover:scale-110 transition-all duration-300"></i> </span>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- LOCATION DATA & LOGIC ---
+        const countryData = {
+            'BD': { name: 'Bangladesh', city: 'Dhaka' },
+            'IN': { name: 'India', city: 'New Delhi' },
+            'GB': { name: 'United Kingdom', city: 'London' },
+            'UK': { name: 'United Kingdom', city: 'London' }, // Alias
+            'NG': { name: 'Nigeria', city: 'Lagos' },
+            'PK': { name: 'Pakistan', city: 'Islamabad' },
+            'AU': { name: 'Australia', city: 'Sydney' }
+        };
+
+        async function detectLocation() {
+            const statusDiv = document.getElementById('detectionStatus');
+            if(statusDiv) statusDiv.classList.remove('hidden');
+            
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                
+                if(data.country_code) {
+                    const code = data.country_code;
+                    // Auto-fill address
+                    const city = data.city || 'Unknown';
+                    const country = data.country_name || 'Unknown';
+                    const addrInput = document.getElementById('addressInput');
+                    if(addrInput) addrInput.value = `${city}, ${country}`;
+                    updateCard();
+                    
+                    // Highlight UI
+                    highlightFlag(code);
+                }
+            } catch(e) {
+                console.log("Detection error:", e);
+                // Fallback to Pakistan if detection fails (e.g., AdBlocker)
+                switchCountry('PK');
+            } finally {
+                if(statusDiv) statusDiv.classList.add('hidden');
+            }
+        }
+
+        function switchCountry(code) {
+            // Normalize UK/GB
+            if(code === 'UK') code = 'GB';
+
+            const info = countryData[code] || { name: 'Unknown', city: 'Unknown' };
+            const addrInput = document.getElementById('addressInput');
+            if(addrInput) addrInput.value = `${info.city}, ${info.name}`;
+            updateCard();
+            highlightFlag(code);
+        }
+
+        function highlightFlag(code) {
+            // 1. Reset all buttons
+            document.querySelectorAll('[id^="switchTo"]').forEach(btn => {
+                btn.className = "px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-50 transition-colors duration-200";
+            });
+
+            // 2. Highlight active button (Handle UK/GB alias)
+            let targetId = `switchTo${code}`;
+            if(code === 'GB' && !document.getElementById(targetId)) targetId = 'switchToUK';
+            
+            const activeBtn = document.getElementById(targetId);
+            if (activeBtn) {
+                activeBtn.className = "px-3 py-1 text-sm rounded-md border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-medium transition-colors duration-200 shadow-sm";
+            }
+
+            // 3. Update Big Flag Indicator in the new HTML structure
+            const indicatorDiv = document.getElementById('countryIndicator');
+            if(indicatorDiv) {
+                const img = indicatorDiv.querySelector('img');
+                const text = indicatorDiv.querySelector('span');
+                if(img) img.src = `https://flagcdn.com/24x18/${code.toLowerCase()}.png`;
+                // Optional: map code to emoji for fallback
+                const emojis = { 'PK': '🇵🇰', 'BD': '🇧🇩', 'IN': '🇮🇳', 'GB': '🇬🇧', 'NG': '🇳🇬', 'AU': '🇦🇺' };
+                if(text && emojis[code]) text.innerText = emojis[code];
+            }
+        }
+
+        // --- CARD UPDATE LOGIC ---
+        function updateCard() {
+            // Updated to match new IDs
+            setText('cardCollege', 'collegeNameInput');
+            setText('cardName', 'nameInput');
+            setText('cardId', 'idInput');
+            setText('cardClass', 'classInput');
+            setText('cardMobile', 'mobileInput');
+            setText('cardEmail', 'studentEmailInput');
+            setText('cardAddressHeader', 'addressInput');
+            setText('cardWebsite', 'websiteInput');
+            
+            // Date Formatting
+            const dob = new Date(document.getElementById('dobInput').value);
+            const issue = new Date(document.getElementById('issueDateInput').value);
+            const valid = new Date(document.getElementById('validDateInput').value);
+            
+            if(!isNaN(dob)) document.getElementById('cardDob').textContent = dob.toLocaleDateString('en-GB');
+            
+            let vText = "";
+            if(!isNaN(issue)) vText += formatMY(issue);
+            if(!isNaN(valid)) vText += " - " + formatMY(valid);
+            document.getElementById('cardValidity').textContent = vText;
+        }
+
+        function setText(tid, sid) {
+            const el = document.getElementById(tid);
+            const inputEl = document.getElementById(sid);
+            if(el && inputEl) el.textContent = inputEl.value;
+        }
+
+        function formatMY(date) {
+            return (date.getMonth()+1).toString().padStart(2,'0') + "/" + date.getFullYear().toString().slice(-2);
+        }
+
+        // --- HELPERS ---
+        function handleImage(input, imgId) {
+            if (input.files && input.files[0]) {
+                const r = new FileReader();
+                r.onload = (e) => document.getElementById(imgId).src = e.target.result;
+                r.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function copyToClipboard(id) {
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.select();
+            navigator.clipboard.writeText(el.value);
+            // Flash effect
+            el.style.borderColor = '#10b981';
+            setTimeout(() => el.style.borderColor = '#d1d5db', 500);
+        }
+
+        // --- RANDOM DATA GENERATORS (Updated for new IDs) ---
+        function setRandom(type) {
+            if(type === 'college') document.getElementById('collegeNameInput').value = ["Oxford University", "Cambridge Institute", "Stanford Tech", "MIT Engineering"][Math.floor(Math.random()*4)];
+            if(type === 'id') document.getElementById('idInput').value = "ID-" + Math.floor(Math.random() * 999999);
+            if(type === 'mobile') document.getElementById('mobileInput').value = "+92 3" + Math.floor(Math.random()*99) + " " + Math.floor(Math.random()*9999999);
+            if(type === 'class') document.getElementById('classInput').value = ["BS CS", "BBA", "MBBS", "Electrical Eng."][Math.floor(Math.random()*4)];
+            if(type === 'address') document.getElementById('addressInput').value = ["Lahore, PK", "London, UK", "New York, USA", "Dubai, UAE"][Math.floor(Math.random()*4)];
+            if(type === 'name') document.getElementById('nameInput').value = ["Ali Khan", "Sarah Smith", "John Doe", "Fatima"][Math.floor(Math.random()*4)];
+            if(type === 'principalName') document.getElementById('principalNameInput').value = ["Dr. Smith", "Prof. Alvi", "James Bond", "M. Iqbal"][Math.floor(Math.random()*4)];
+            if(type === 'principalName') document.getElementById('cardSigText').innerText = document.getElementById('principalNameInput').value;
+
+            // Simple placeholders for photo/logo buttons
+            if(type === 'photo') {
+                const photos = [
+                    "https://i.ibb.co/4wyCZZz9/download-removebg-preview.png",
+                    "https://i.ibb.co/SXkWRDHH/image-removebg-preview.png",
+                    "https://i.ibb.co/ZRkJgpd4/downloa-removebg-preview.png",
+                    "https://i.ibb.co/vvm48vb0/images-removebg-preview-1.png",
+                    "https://i.ibb.co/mCnjKKXs/imagess-removebg-preview.png"
+                ];
+                document.getElementById('cardPhoto').src = photos[Math.floor(Math.random() * photos.length)];
+            }
+            if(type === 'logo') {
+                const logos = [
+                    "https://i.ibb.co/4RLq5w2f/downloa-removebg-preview-removebg-preview-1.png",
+                    "https://i.ibb.co/fdLjrng5/image-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/kjFV22c/download-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/CszP8Ch5/images-removebg-preview.png"
+                ];
+                document.getElementById('cardLogo').src = logos[Math.floor(Math.random() * logos.length)];
+            }
+            if(type === 'signature') {
+                const signatures = [
+                    "https://i.ibb.co/WpPBtmzj/Whats-App-Image-2025-12-05-at-5-11-04-PM-removebg-preview.jpg",
+                    "https://i.ibb.co/HpP39Fmd/download-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/XZC2j3sb/image-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/hJrXTT89/downloa-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/b5C6ps6r/downloa-removebg-preview-removebg-preview-1.png",
+                    "https://i.ibb.co/yc6dj1hw/downloa-removebg-preview-removebg-preview-1-removebg-preview.png",
+                    "https://i.ibb.co/8LNzqcvp/downloa-removebg-preview-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/pjWMbHY8/image-removebg-preview-removebg-preview-removebg-preview.png",
+                    "https://i.ibb.co/7t7qJmcC/download-removebg-preview-removebg-preview-removebg-preview-1.png"
+                ];
+                document.getElementById('cardSig').src = signatures[Math.floor(Math.random() * signatures.length)];
+            }
+
+            updateCard();
+        }
+
+        // --- DOWNLOAD ---
+        function downloadCard() {
+            const card = document.getElementById("idCardPreview");
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            html2canvas(card, { scale: 3, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `ID-Card-${document.getElementById('idInput').value}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                btn.innerHTML = originalHTML;
+            });
+        }
+        
+        // Init
+        updateCard();
+    </script>
+</body>
+</html>
