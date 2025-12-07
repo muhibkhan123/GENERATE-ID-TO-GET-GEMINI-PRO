@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Edu ID Card Generator</title>
+    <title>Gemini Edu ID Card Generator Pro</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400;500;600;700&family=Merriweather:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <!-- html2canvas -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <!-- QR Code Library -->
@@ -77,10 +77,6 @@
         }
         .file-input-button:hover { background-color: #e5e7eb; border-color: #9ca3af; }
 
-        /* Scrollbar hide */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
         /* Theme Colors */
         .theme-btn { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #cbd5e1; transition: transform 0.2s; }
         .theme-btn:hover { transform: scale(1.1); }
@@ -94,10 +90,59 @@
             font-size: 10px; cursor: pointer; color: #475569;
         }
         .img-control-btn:hover { background: #cbd5e1; }
+        
+        /* Barcode Pattern */
+        .barcode {
+            height: 30px;
+            width: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                #000 0px,
+                #000 2px,
+                transparent 2px,
+                transparent 4px,
+                #000 4px,
+                #000 5px,
+                transparent 5px,
+                transparent 8px
+            );
+        }
+
+        /* Magnetic Stripe */
+        .magnetic-stripe {
+            background: #1a1a1a;
+            height: 40px;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        /* Font Classes */
+        .font-poppins { font-family: 'Poppins', sans-serif; }
+        .font-serif { font-family: 'Merriweather', serif; }
+        .font-mono { font-family: 'Courier Prime', monospace; }
+        .font-hand { font-family: 'Dancing Script', cursive; }
 
     </style>
 </head>
 <body class="text-slate-700 flex flex-col min-h-screen" onload="initApp()">
+
+    <!-- WEBCAM MODAL -->
+    <div id="webcamModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white p-4 rounded-xl shadow-2xl w-full max-w-md mx-4 relative">
+            <h3 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-camera text-indigo-600"></i> Take Photo</h3>
+            <div class="aspect-[4/3] bg-black rounded-lg overflow-hidden relative mb-4">
+                <video id="webcamVideo" autoplay playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video> <!-- Mirror effect -->
+                <canvas id="webcamCanvas" class="hidden"></canvas>
+            </div>
+            <div class="flex gap-3 justify-end">
+                <button onclick="stopWebcam()" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition">Cancel</button>
+                <button onclick="capturePhoto()" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-bold transition flex items-center gap-2">
+                    <div class="w-3 h-3 bg-white rounded-full animate-pulse"></div> Capture
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <div class="flex-grow container mx-auto px-4 py-8">
@@ -106,7 +151,7 @@
             <!-- LEFT COLUMN: INPUT FORM -->
             <div class="w-full lg:w-1/2 p-6 lg:p-8 space-y-6 border-r border-gray-200 bg-white rounded-xl shadow-lg relative">
                 
-                <!-- Reset Button (Absolute Position) -->
+                <!-- Reset Button -->
                 <button onclick="resetForm()" class="absolute top-6 right-6 text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors">
                     <i class="fa-solid fa-rotate-right"></i> Reset
                 </button>
@@ -174,8 +219,8 @@
                     <div class="space-y-1">
                         <label class="block text-sm font-medium text-gray-700">College Name:</label>
                         <div class="flex gap-2">
-                            <input type="text" id="collegeNameInput" value="University of Science & Tech" oninput="updateCard()" class="custom-input">
-                            <button onclick="setRandom('college')" class="bg-blue-500 text-white px-3 rounded text-xs hover:bg-blue-600 transition"><i class="fa-solid fa-magic"></i></button>
+                            <input type="text" id="collegeNameInput" value="University of Science & Tech" oninput="handleInput()" class="custom-input">
+                            <button onclick="setRandom('college')" class="bg-blue-500 text-white px-3 rounded text-xs hover:bg-blue-600 transition" title="Random College"><i class="fa-solid fa-magic"></i></button>
                         </div>
                     </div>
 
@@ -184,76 +229,19 @@
                         <div class="col-span-2 space-y-1">
                             <label class="block text-sm font-medium text-gray-700">ID Number:</label>
                             <div class="flex gap-2">
-                                <input type="text" id="idInput" value="SUST23CSE001" oninput="updateCard()" class="custom-input">
-                                <button onclick="setRandom('id')" class="bg-purple-500 text-white px-3 rounded text-xs hover:bg-purple-600 transition"><i class="fa-solid fa-random"></i></button>
+                                <input type="text" id="idInput" value="SUST23CSE001" oninput="handleInput()" class="custom-input">
+                                <button onclick="setRandom('id')" class="bg-purple-500 text-white px-3 rounded text-xs hover:bg-purple-600 transition" title="Random ID"><i class="fa-solid fa-random"></i></button>
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Blood Group:</label>
-                            <select id="bloodGroupInput" onchange="updateCard()" class="custom-input">
+                            <label class="block text-sm font-medium text-gray-700">Blood:</label>
+                            <select id="bloodGroupInput" onchange="handleInput()" class="custom-input">
                                 <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
                                 <option value="O+" selected>O+</option>
-                                <option value="O-">O-</option>
+                                <option value="B+">B+</option>
                                 <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
+                                <option value="A-">A-</option>
                             </select>
-                        </div>
-                    </div>
-
-                    <!-- Email & Mobile -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Email:</label>
-                            <input type="email" id="studentEmailInput" value="student@uni.edu.pk" oninput="updateCard()" class="custom-input">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Mobile:</label>
-                            <div class="flex gap-2">
-                                <input type="tel" id="mobileInput" value="+92 300 1234567" oninput="updateCard()" class="custom-input">
-                                <button onclick="setRandom('mobile')" class="bg-orange-500 text-white px-2 rounded text-xs hover:bg-orange-600 transition"><i class="fa-solid fa-phone"></i></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Class & DOB -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Class:</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="classInput" value="BS Software Eng." oninput="updateCard()" class="custom-input">
-                                <button onclick="setRandom('class')" class="bg-blue-500 text-white px-2 rounded text-xs hover:bg-blue-600 transition"><i class="fa-solid fa-list"></i></button>
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">DOB:</label>
-                            <input type="date" id="dobInput" value="2004-06-15" oninput="updateCard()" class="custom-input">
-                        </div>
-                    </div>
-
-                    <!-- Dates & Address -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="space-y-1">
-                            <label class="block text-xs font-medium text-gray-700">Issue Date:</label>
-                            <input type="date" id="issueDateInput" value="2025-10-01" oninput="updateCard()" class="custom-input text-xs">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-xs font-medium text-gray-700">Valid Until:</label>
-                            <input type="date" id="validDateInput" value="2029-10-01" oninput="updateCard()" class="custom-input text-xs">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-xs font-medium text-gray-700">Website:</label>
-                            <input type="text" id="websiteInput" value="www.sust.edu.pk" oninput="updateCard()" class="custom-input text-xs">
-                        </div>
-                    </div>
-
-                    <div class="space-y-1">
-                        <label class="block text-sm font-medium text-gray-700">Address:</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="addressInput" value="Township, Bannu, KP" oninput="updateCard()" class="custom-input">
-                            <button onclick="setRandom('address')" class="bg-teal-500 text-white px-2 rounded text-xs hover:bg-teal-600 transition"><i class="fa-solid fa-map-marker-alt"></i></button>
                         </div>
                     </div>
 
@@ -261,155 +249,238 @@
                     <div class="space-y-1">
                         <label class="block text-sm font-medium text-gray-700">Student Name:</label>
                         <div class="flex gap-2">
-                            <input type="text" id="nameInput" value="Imran Wazir" oninput="updateCard()" class="custom-input font-bold uppercase">
-                            <button onclick="setRandom('name')" class="bg-pink-500 text-white px-3 rounded text-xs hover:bg-pink-600 transition"><i class="fa-solid fa-user"></i></button>
+                            <input type="text" id="nameInput" value="Imran Wazir" oninput="handleInput()" class="custom-input font-bold uppercase">
+                            <button onclick="setRandom('name')" class="bg-pink-500 text-white px-3 rounded text-xs hover:bg-pink-600 transition" title="Random Name"><i class="fa-solid fa-user"></i></button>
                         </div>
                     </div>
 
-                    <!-- Images & Controls -->
-                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
-                        
-                        <!-- Photo Upload & Zoom -->
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-slate-500 uppercase flex justify-between">
-                                <span>Student Photo</span>
-                                <span class="text-[10px] text-slate-400">Zoom & Pan controls below</span>
-                            </label>
-                            <div class="flex gap-2 items-center">
-                                <button onclick="setRandom('photo')" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"><i class="fa-solid fa-image"></i> Random</button>
-                                <label for="studentPhotoUpload" class="file-input-button flex-grow py-1">Upload File</label>
-                                <input type="file" id="studentPhotoUpload" accept="image/*" class="hidden" onchange="handleImage(this, 'cardPhoto')">
-                            </div>
-                            
-                            <!-- Image Controls -->
-                            <div class="flex items-center gap-2">
-                                <div class="flex-grow flex items-center gap-2 bg-white px-2 rounded border border-gray-300">
-                                    <i class="fa-solid fa-magnifying-glass-minus text-xs text-gray-400"></i>
-                                    <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateImageTransform()">
-                                    <i class="fa-solid fa-magnifying-glass-plus text-xs text-gray-400"></i>
-                                </div>
-                                <div class="grid grid-cols-3 gap-0.5 w-16">
-                                    <div></div>
-                                    <button class="img-control-btn" onclick="panImage(0, -10)"><i class="fa-solid fa-chevron-up"></i></button>
-                                    <div></div>
-                                    <button class="img-control-btn" onclick="panImage(-10, 0)"><i class="fa-solid fa-chevron-left"></i></button>
-                                    <button class="img-control-btn" onclick="resetImageTransform()"><i class="fa-solid fa-expand"></i></button>
-                                    <button class="img-control-btn" onclick="panImage(10, 0)"><i class="fa-solid fa-chevron-right"></i></button>
-                                    <div></div>
-                                    <button class="img-control-btn" onclick="panImage(0, 10)"><i class="fa-solid fa-chevron-down"></i></button>
-                                    <div></div>
-                                </div>
+                    <!-- Details Row -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Class/Course:</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="classInput" value="BS Software Eng." oninput="handleInput()" class="custom-input">
+                                <button onclick="setRandom('class')" class="bg-blue-500 text-white px-2 rounded text-xs hover:bg-blue-600 transition"><i class="fa-solid fa-list"></i></button>
                             </div>
                         </div>
-
-                        <!-- Logo & Sig -->
-                        <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-slate-500 uppercase">College Logo</label>
-                                <div class="flex gap-1">
-                                    <button onclick="setRandom('logo')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs hover:bg-yellow-600 flex-grow"><i class="fa-solid fa-shield-halved"></i></button>
-                                    <label for="logoUpload" class="file-input-button flex-grow"><i class="fa-solid fa-upload"></i></label>
-                                    <input type="file" id="logoUpload" class="hidden" onchange="handleImage(this, 'cardLogo')">
-                                </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Mobile:</label>
+                            <div class="flex gap-2">
+                                <input type="tel" id="mobileInput" value="+92 300 1234567" oninput="handleInput()" class="custom-input">
+                                <button onclick="setRandom('mobile')" class="bg-orange-500 text-white px-2 rounded text-xs hover:bg-orange-600 transition"><i class="fa-solid fa-phone"></i></button>
                             </div>
-                            <div class="space-y-1">
-                                <label class="text-xs font-bold text-slate-500 uppercase">Signature</label>
-                                <div class="flex gap-1">
-                                    <button onclick="setRandom('signature')" class="bg-cyan-500 text-white px-2 py-1 rounded text-xs hover:bg-cyan-600 flex-grow"><i class="fa-solid fa-pen-fancy"></i></button>
-                                    <label for="sigUpload" class="file-input-button flex-grow"><i class="fa-solid fa-upload"></i></label>
-                                    <input type="file" id="sigUpload" class="hidden" onchange="handleImage(this, 'cardSig')">
-                                </div>
+                        </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700">Address:</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="addressInput" value="Township, Bannu, KP" oninput="handleInput()" class="custom-input">
+                             <button onclick="setRandom('address')" class="bg-teal-500 text-white px-2 rounded text-xs hover:bg-teal-600 transition"><i class="fa-solid fa-map-marker-alt"></i></button>
+                            <button onclick="detectLocation()" class="bg-gray-500 text-white px-2 rounded text-xs hover:bg-gray-600 transition" title="Detect Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Dates & Web -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-gray-700">Valid From:</label>
+                            <input type="date" id="issueDateInput" value="2025-10-01" oninput="handleInput()" class="custom-input text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-gray-700">Valid To:</label>
+                            <input type="date" id="validDateInput" value="2029-10-01" oninput="handleInput()" class="custom-input text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-medium text-gray-700">Website:</label>
+                            <input type="text" id="websiteInput" value="www.sust.edu.pk" oninput="handleInput()" class="custom-input text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Images & Camera -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                        <label class="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-camera"></i> Student Photo
+                        </label>
+                        
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <!-- Random Button -->
+                            <button onclick="setRandom('photo')" class="bg-red-500 text-white px-2 rounded text-xs hover:bg-red-600 transition"><i class="fa-solid fa-shuffle"></i></button>
+                            
+                            <!-- Camera Button -->
+                            <button onclick="startWebcam()" class="flex-1 bg-indigo-600 text-white px-2 py-2 rounded-lg text-xs font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-camera-retro"></i> Cam
+                            </button>
+                            <!-- Upload Button -->
+                            <label for="studentPhotoUpload" class="flex-1 bg-white border border-gray-300 text-gray-700 px-2 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 transition cursor-pointer flex items-center justify-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-upload"></i> Upload
+                            </label>
+                            <input type="file" id="studentPhotoUpload" accept="image/*" class="hidden" onchange="handleImage(this, 'cardPhoto')">
+                        </div>
+
+                        <!-- Zoom Controls -->
+                        <div class="flex items-center gap-2 pt-1">
+                            <i class="fa-solid fa-magnifying-glass-minus text-xs text-gray-400"></i>
+                            <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="updateImageTransform()">
+                            <i class="fa-solid fa-magnifying-glass-plus text-xs text-gray-400"></i>
+                            <button class="img-control-btn" onclick="resetImageTransform()"><i class="fa-solid fa-expand"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Logo & Sig Uploads -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Logo</label>
+                            <div class="flex gap-1">
+                                <button onclick="setRandom('logo')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs hover:bg-yellow-600 flex-grow"><i class="fa-solid fa-shield-halved"></i></button>
+                                <label for="logoUpload" class="file-input-button flex-grow"><i class="fa-solid fa-upload"></i></label>
+                                <input type="file" id="logoUpload" class="hidden" onchange="handleImage(this, 'cardLogo')">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Signature</label>
+                            <div class="flex gap-1">
+                                <button onclick="setRandom('signature')" class="bg-cyan-500 text-white px-2 py-1 rounded text-xs hover:bg-cyan-600 flex-grow"><i class="fa-solid fa-pen-fancy"></i></button>
+                                <label for="sigUpload" class="file-input-button flex-grow"><i class="fa-solid fa-upload"></i></label>
+                                <input type="file" id="sigUpload" class="hidden" onchange="handleImage(this, 'cardSig')">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: PREVIEW -->
+            <!-- RIGHT COLUMN: PREVIEW & CONTROLS -->
             <div class="w-full lg:w-1/2 flex flex-col items-center sticky top-4">
-                <div class="mb-4 text-center">
-                    <h3 class="text-xl font-bold text-slate-800">Live Preview</h3>
-                    <p class="text-xs text-slate-500">Auto-updates instantly</p>
+                
+                <!-- Side Toggle (Front/Back) -->
+                <div class="bg-gray-200 p-1 rounded-full flex gap-1 mb-4 shadow-inner">
+                    <button onclick="toggleSide('front')" id="btnShowFront" class="px-6 py-1.5 rounded-full text-sm font-bold shadow-sm bg-white text-indigo-600 transition-all">Front Side</button>
+                    <button onclick="toggleSide('back')" id="btnShowBack" class="px-6 py-1.5 rounded-full text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">Back Side</button>
                 </div>
 
                 <!-- CARD CONTAINER -->
-                <div id="idCardPreview" class="id-card-container card-landscape relative bg-white overflow-hidden shadow-2xl transition-all duration-500">
+                <div id="idCardPreview" class="id-card-container card-landscape relative bg-white overflow-hidden shadow-2xl transition-all duration-500 font-poppins text-slate-800">
                     
-                    <!-- Decorative Header (Themeable) -->
-                    <div id="cardHeader" class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-blue-700 to-blue-500 z-10 transition-colors duration-300"></div>
-                    
-                    <!-- Content Wrapper -->
-                    <div id="cardContent" class="relative z-10 flex h-full pt-5 pb-2 px-5 gap-4">
+                    <!-- ================= FRONT SIDE ================= -->
+                    <div id="cardFront" class="w-full h-full relative flex flex-col">
                         
-                        <!-- LEFT SECTION (Photo, Logo, Sig) -->
-                        <div id="leftSection" class="w-[35%] flex flex-col items-center pt-2 border-r border-dashed border-slate-300 pr-3 transition-all duration-300">
-                            <!-- Logo -->
-                            <div class="w-14 h-14 mb-3 relative">
-                                <img id="cardLogo" src="https://via.placeholder.com/100x100?text=LOGO" class="w-full h-full object-contain">
-                            </div>
+                        <!-- Header Bar -->
+                        <div id="cardHeader" class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-blue-700 to-blue-500 z-10 transition-colors duration-300"></div>
+                        
+                        <!-- Main Content Wrapper -->
+                        <div id="cardContent" class="relative z-10 flex h-full pt-5 pb-2 px-5 gap-4">
                             
-                            <!-- Photo with Zoom Container -->
-                            <div class="w-24 h-28 rounded-md border-2 border-white shadow-md mb-2 overflow-hidden bg-slate-100 relative">
-                                <img id="cardPhoto" src="https://via.placeholder.com/150?text=PHOTO" class="w-full h-full object-cover transition-transform duration-100 origin-center">
-                            </div>
-
-                            <!-- Principal Sig -->
-                            <div class="mt-auto text-center w-full pb-1">
-                                <img id="cardSig" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNDAiPjxwYXRoIGQ9Ik0xMCwzMCBRMzAsMTAgNTAsMjUgVDkwLDIwIiBzdHJva2U9IiMzMzQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" class="h-8 mx-auto object-contain opacity-70">
-                                <p class="text-[6px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-200 mt-1 pt-0.5">Principal Signature</p>
-                            </div>
-                        </div>
-
-                        <!-- RIGHT SECTION (Details) -->
-                        <div id="rightSection" class="w-[65%] flex flex-col pt-1 pl-1 transition-all duration-300">
-                            
-                            <!-- Header -->
-                            <div class="mb-2 border-b border-slate-100 pb-2">
-                                <h2 id="cardCollege" class="text-sm font-bold text-slate-800 uppercase tracking-wide leading-tight">University of Science & Tech</h2>
-                                <p id="cardAddressHeader" class="text-[9px] text-slate-500 font-medium">Township, Bannu, KP</p>
-                            </div>
-
-                            <!-- Badge (Themeable) -->
-                            <div class="mb-3">
-                                <span id="cardBadge" class="inline-block bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded shadow-sm font-bold mb-1 tracking-wider transition-colors duration-300">STUDENT CARD</span>
-                                <h1 id="cardName" class="text-lg font-bold text-slate-800 uppercase leading-none">MUHIB ULLAH</h1>
-                            </div>
-
-                            <!-- Details Grid -->
-                            <div class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 text-[9px] text-slate-600 mb-auto">
-                                <span class="font-bold text-slate-400 uppercase">ID NO:</span>
-                                <span id="cardId" class="font-mono font-bold text-slate-800">SUST23CSE001</span>
-
-                                <span class="font-bold text-slate-400 uppercase">Blood G:</span>
-                                <span id="cardBlood" class="font-bold text-red-600">O+</span>
-
-                                <span class="font-bold text-slate-400 uppercase">Class:</span>
-                                <span id="cardClass" class="font-medium text-slate-900 truncate">BS Software Eng.</span>
-                                
-                                <span class="font-bold text-slate-400 uppercase">Mobile:</span>
-                                <span id="cardMobile" class="font-medium">+92 300 1234567</span>
-                                
-                                <span class="font-bold text-slate-400 uppercase">Valid:</span>
-                                <span id="cardValidity" class="font-medium text-green-600">10/25 - 10/29</span>
-                            </div>
-
-                            <!-- Footer: Website & Real QR -->
-                            <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
-                                <div class="flex flex-col justify-end">
-                                    <p id="cardWebsite" class="text-[8px] text-blue-500 font-bold mb-1">www.sust.edu.pk</p>
-                                    <p id="cardEmail" class="text-[7px] text-slate-400 lowercase">student@uni.edu.pk</p>
+                            <!-- LEFT PHOTO SECTION -->
+                            <div id="leftSection" class="w-[35%] flex flex-col items-center pt-2 border-r border-dashed border-slate-300 pr-3 transition-all duration-300">
+                                <!-- Logo -->
+                                <div class="w-14 h-14 mb-3 relative">
+                                    <img id="cardLogo" src="https://via.placeholder.com/100x100?text=LOGO" class="w-full h-full object-contain">
                                 </div>
-                                <!-- Real QR Code Container -->
-                                <div id="qrcode" class="bg-white p-0.5 border border-slate-200 rounded"></div>
+                                
+                                <!-- Photo Frame -->
+                                <div class="w-24 h-28 rounded-md border-2 border-white shadow-md mb-2 overflow-hidden bg-slate-100 relative group">
+                                    <img id="cardPhoto" src="https://via.placeholder.com/150?text=PHOTO" class="w-full h-full object-cover transition-transform duration-100 origin-center">
+                                </div>
+
+                                <!-- Signature -->
+                                <div class="mt-auto text-center w-full pb-1">
+                                    <img id="cardSig" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNDAiPjxwYXRoIGQ9Ik0xMCwzMCBRMzAsMTAgNTAsMjUgVDkwLDIwIiBzdHJva2U9IiMzMzQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==" class="h-8 mx-auto object-contain opacity-70">
+                                    <p class="text-[6px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-200 mt-1 pt-0.5">Principal Signature</p>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT DETAILS SECTION -->
+                            <div id="rightSection" class="w-[65%] flex flex-col pt-1 pl-1 transition-all duration-300">
+                                <!-- Header -->
+                                <div class="mb-2 border-b border-slate-100 pb-2">
+                                    <h2 id="cardCollege" class="text-sm font-bold uppercase tracking-wide leading-tight">University of Science & Tech</h2>
+                                    <p id="cardAddressHeader" class="text-[9px] text-slate-500 font-medium">Township, Bannu, KP</p>
+                                </div>
+
+                                <!-- Name & Badge -->
+                                <div class="mb-3">
+                                    <span id="cardBadge" class="inline-block bg-blue-600 text-white text-[8px] px-2 py-0.5 rounded shadow-sm font-bold mb-1 tracking-wider transition-colors duration-300">STUDENT CARD</span>
+                                    <h1 id="cardName" class="text-lg font-bold uppercase leading-none text-slate-900">MUHIB ULLAH</h1>
+                                </div>
+
+                                <!-- Data Grid -->
+                                <div class="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1.5 text-[9px] text-slate-600 mb-auto">
+                                    <span class="font-bold text-slate-400 uppercase">ID NO:</span>
+                                    <span id="cardId" class="font-mono font-bold text-slate-800">SUST23CSE001</span>
+
+                                    <span class="font-bold text-slate-400 uppercase">Blood G:</span>
+                                    <span id="cardBlood" class="font-bold text-red-600">O+</span>
+
+                                    <span class="font-bold text-slate-400 uppercase">Class:</span>
+                                    <span id="cardClass" class="font-medium text-slate-900 truncate">BS Software Eng.</span>
+                                    
+                                    <span class="font-bold text-slate-400 uppercase">Mobile:</span>
+                                    <span id="cardMobile" class="font-medium">+92 300 1234567</span>
+                                    
+                                    <span class="font-bold text-slate-400 uppercase">Valid:</span>
+                                    <span id="cardValidity" class="font-medium text-green-600">10/25 - 10/29</span>
+                                </div>
+
+                                <!-- Footer QR -->
+                                <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+                                    <div class="flex flex-col justify-end">
+                                        <p id="cardWebsite" class="text-[8px] text-blue-500 font-bold mb-1">www.sust.edu.pk</p>
+                                        <p id="cardEmail" class="text-[7px] text-slate-400 lowercase">student@uni.edu.pk</p>
+                                    </div>
+                                    <div id="qrcode" class="bg-white p-0.5 border border-slate-200 rounded"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- ================= BACK SIDE (NEW) ================= -->
+                    <div id="cardBack" class="w-full h-full relative flex-col hidden bg-white">
+                         <!-- Magnetic Stripe -->
+                        <div class="magnetic-stripe"></div>
+                        
+                        <div class="px-8 py-4 flex flex-col h-full">
+                            <!-- Terms -->
+                            <div class="mb-4">
+                                <h4 class="text-[10px] font-bold uppercase text-slate-700 mb-1">Terms & Conditions</h4>
+                                <ul class="list-disc pl-3 text-[8px] text-slate-500 space-y-1 leading-tight">
+                                    <li>This card is the property of <span class="font-bold text-slate-700 college-name-ref">Institution</span>.</li>
+                                    <li>It is non-transferable and must be presented upon request.</li>
+                                    <li>Misuse of this card is a punishable offense.</li>
+                                    <li>Card holder is responsible for the safe keeping of this card.</li>
+                                </ul>
+                            </div>
+
+                            <!-- Emergency -->
+                            <div class="mb-auto">
+                                <h4 class="text-[10px] font-bold uppercase text-slate-700 mb-1">If Found:</h4>
+                                <p class="text-[8px] text-slate-500 leading-tight">
+                                    Please return to the Registrar's Office at: <br>
+                                    <span class="font-semibold text-slate-600" id="backAddress">Address Here</span><br>
+                                    Or call: <span class="font-semibold text-slate-600" id="backMobile">Phone Here</span>
+                                </p>
+                            </div>
+
+                            <!-- Barcode & Footer -->
+                            <div class="mt-4 border-t border-slate-100 pt-3 text-center">
+                                <div class="barcode mb-1 opacity-80"></div>
+                                <p class="text-[8px] font-mono tracking-widest text-slate-400" id="backId">ID-REF-NUMBER</p>
+                                <p class="text-[7px] text-slate-300 mt-2">Powered by Gemini Edu System</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- Download Button -->
-                <button onclick="downloadCard()" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2">
-                    <i class="fas fa-download"></i> Download Card
-                </button>
+                <!-- Download & Save Info -->
+                <div class="flex flex-col items-center mt-6 w-full gap-2">
+                    <button onclick="downloadCard()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2">
+                        <i class="fas fa-download"></i> Download <span id="dlSideText">Current Side</span>
+                    </button>
+                    <p class="text-xs text-green-600 flex items-center gap-1 opacity-0 transition-opacity" id="saveStatus">
+                        <i class="fa-solid fa-check-circle"></i> Changes saved to device
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -455,13 +526,16 @@
         </div>
     </footer>
 
+    <!-- Script -->
     <script>
-        // --- STATE & DATA ---
+        // --- DATA & CONFIG ---
         let currentTheme = 'blue';
         let currentOrientation = 'landscape';
+        let currentSide = 'front';
         let imgScale = 1;
         let imgX = 0;
         let imgY = 0;
+        let stream = null; // Webcam Stream
 
         const themeColors = {
             blue: { from: 'from-blue-700', to: 'to-blue-500', badge: 'bg-blue-600', text: 'text-blue-500' },
@@ -471,222 +545,82 @@
             orange: { from: 'from-orange-700', to: 'to-orange-500', badge: 'bg-orange-600', text: 'text-orange-500' }
         };
 
+        // --- INIT & LOCAL STORAGE ---
         function initApp() {
-            detectLocation();
+            loadLocalData(); // FEATURE: LOAD
+            detectLocation(); // Keep existing IP logic
             updateCard();
         }
 
-        // --- CORE CARD UPDATE ---
-        function updateCard() {
-            // Texts
-            setText('cardCollege', 'collegeNameInput');
-            setText('cardName', 'nameInput');
-            setText('cardId', 'idInput');
-            setText('cardClass', 'classInput');
-            setText('cardMobile', 'mobileInput');
-            setText('cardEmail', 'studentEmailInput');
-            setText('cardAddressHeader', 'addressInput');
-            setText('cardWebsite', 'websiteInput');
-            setText('cardBlood', 'bloodGroupInput');
-
-            // Dates
-            const issue = new Date(document.getElementById('issueDateInput').value);
-            const valid = new Date(document.getElementById('validDateInput').value);
-            let vText = "";
-            if(!isNaN(issue)) vText += formatMY(issue);
-            if(!isNaN(valid)) vText += " - " + formatMY(valid);
-            document.getElementById('cardValidity').textContent = vText;
-
-            // QR Code
-            generateQRCode();
+        function handleInput() {
+            updateCard();
+            saveLocalData(); // FEATURE: AUTO SAVE
+            showSaveStatus();
         }
 
-        function setText(tid, sid) {
-            const el = document.getElementById(tid);
-            const input = document.getElementById(sid);
-            if(el && input) el.textContent = input.value;
+        function saveLocalData() {
+            const fontEl = document.getElementById('fontSelect');
+            const data = {
+                college: document.getElementById('collegeNameInput').value,
+                id: document.getElementById('idInput').value,
+                name: document.getElementById('nameInput').value,
+                blood: document.getElementById('bloodGroupInput').value,
+                class: document.getElementById('classInput').value,
+                mobile: document.getElementById('mobileInput').value,
+                address: document.getElementById('addressInput').value,
+                email: document.getElementById('websiteInput').value, // reusing field
+                theme: currentTheme,
+                font: fontEl ? fontEl.value : 'font-poppins'
+            };
+            localStorage.setItem('eduCardData', JSON.stringify(data));
         }
 
-        function formatMY(date) {
-            return (date.getMonth()+1).toString().padStart(2,'0') + "/" + date.getFullYear().toString().slice(-2);
-        }
-
-        // --- NEW FEATURES LOGIC ---
-
-        // 1. QR Code
-        let qrObj = null;
-        function generateQRCode() {
-            const id = document.getElementById('idInput').value;
-            const name = document.getElementById('nameInput').value;
-            const qrContainer = document.getElementById("qrcode");
-            
-            // Clear previous
-            qrContainer.innerHTML = "";
-            
-            // Create new
-            new QRCode(qrContainer, {
-                text: `ID: ${id}\nName: ${name}\nVerifiable Student`,
-                width: 48,
-                height: 48,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L
-            });
-        }
-
-        // 2. Theme Switcher
-        function setTheme(color, btn) {
-            currentTheme = color;
-            const theme = themeColors[color];
-            
-            // Update Card UI
-            const header = document.getElementById('cardHeader');
-            const badge = document.getElementById('cardBadge');
-            const web = document.getElementById('cardWebsite');
-
-            // Reset classes
-            header.className = `absolute top-0 left-0 w-full h-3 z-10 transition-colors duration-300 bg-gradient-to-r ${theme.from} ${theme.to}`;
-            badge.className = `inline-block text-white text-[8px] px-2 py-0.5 rounded shadow-sm font-bold mb-1 tracking-wider transition-colors duration-300 ${theme.badge}`;
-            web.className = `text-[8px] font-bold mb-1 transition-colors duration-300 ${theme.text}`;
-
-            // Update Active Button State
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-        }
-
-        // 3. Orientation Toggle
-        function setOrientation(mode) {
-            currentOrientation = mode;
-            const card = document.getElementById('idCardPreview');
-            const content = document.getElementById('cardContent');
-            const leftSec = document.getElementById('leftSection');
-            const rightSec = document.getElementById('rightSection');
-            const btnL = document.getElementById('btnLandscape');
-            const btnP = document.getElementById('btnPortrait');
-
-            if(mode === 'landscape') {
-                card.className = "id-card-container card-landscape relative bg-white overflow-hidden shadow-2xl transition-all duration-500";
-                content.className = "relative z-10 flex h-full pt-5 pb-2 px-5 gap-4"; // Row
-                leftSec.className = "w-[35%] flex flex-col items-center pt-2 border-r border-dashed border-slate-300 pr-3 transition-all";
-                rightSec.className = "w-[65%] flex flex-col pt-1 pl-1 transition-all";
-                
-                // Toggle Button Styles
-                btnL.classList.add('bg-slate-200', 'font-bold', 'text-slate-700');
-                btnL.classList.remove('hover:bg-slate-100', 'text-slate-500');
-                btnP.classList.remove('bg-slate-200', 'font-bold', 'text-slate-700');
-                btnP.classList.add('hover:bg-slate-100', 'text-slate-500');
-
-            } else {
-                // Portrait Logic
-                card.className = "id-card-container card-portrait relative bg-white overflow-hidden shadow-2xl transition-all duration-500";
-                content.className = "relative z-10 flex flex-col h-full pt-5 pb-4 px-6 gap-2"; // Col
-                leftSec.className = "w-full flex flex-col items-center border-b border-dashed border-slate-300 pb-3 transition-all"; // Full width, border bottom
-                rightSec.className = "w-full flex flex-col pt-2 text-center items-center transition-all"; // Full width, centered text
-                
-                // Toggle Button Styles
-                btnP.classList.add('bg-slate-200', 'font-bold', 'text-slate-700');
-                btnP.classList.remove('hover:bg-slate-100', 'text-slate-500');
-                btnL.classList.remove('bg-slate-200', 'font-bold', 'text-slate-700');
-                btnL.classList.add('hover:bg-slate-100', 'text-slate-500');
+        function loadLocalData() {
+            const saved = localStorage.getItem('eduCardData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if(data.college) document.getElementById('collegeNameInput').value = data.college;
+                    if(data.id) document.getElementById('idInput').value = data.id;
+                    if(data.name) document.getElementById('nameInput').value = data.name;
+                    if(data.blood) document.getElementById('bloodGroupInput').value = data.blood;
+                    if(data.class) document.getElementById('classInput').value = data.class;
+                    if(data.mobile) document.getElementById('mobileInput').value = data.mobile;
+                    if(data.address) document.getElementById('addressInput').value = data.address;
+                    if(data.email) document.getElementById('websiteInput').value = data.email;
+                    
+                    if(data.theme) {
+                        // Check if theme button exists for this color (safety check)
+                        const themeBtn = document.querySelector(`.theme-btn.bg-${data.theme}-600`);
+                        if(themeBtn) setTheme(data.theme, themeBtn);
+                        else setTheme('blue', document.querySelector('.theme-btn.bg-blue-600'));
+                    }
+                    if(data.font) {
+                        const fontEl = document.getElementById('fontSelect');
+                        if(fontEl) fontEl.value = data.font;
+                        setFont(data.font);
+                    }
+                } catch(e) { console.log("Error loading save", e); }
             }
         }
 
-        // 4. Image Zoom & Pan
-        function updateImageTransform() {
-            const img = document.getElementById('cardPhoto');
-            const zoomInput = document.getElementById('zoomRange');
-            imgScale = zoomInput.value;
-            applyTransform();
+        function showSaveStatus() {
+            const el = document.getElementById('saveStatus');
+            el.style.opacity = '1';
+            setTimeout(() => el.style.opacity = '0', 2000);
         }
 
-        function panImage(dx, dy) {
-            imgX += dx;
-            imgY += dy;
-            applyTransform();
-        }
-
-        function resetImageTransform() {
-            imgScale = 1; imgX = 0; imgY = 0;
-            document.getElementById('zoomRange').value = 1;
-            applyTransform();
-        }
-
-        function applyTransform() {
-            const img = document.getElementById('cardPhoto');
-            img.style.transform = `scale(${imgScale}) translate(${imgX}px, ${imgY}px)`;
-        }
-
-        // 5. Reset
-        function resetForm() {
-            if(!confirm("Reset all fields to default?")) return;
-            document.getElementById('collegeNameInput').value = "University of Science & Tech";
-            document.getElementById('idInput').value = "SUST23CSE001";
-            document.getElementById('bloodGroupInput').value = "O+";
-            document.getElementById('studentEmailInput').value = "student@uni.edu.pk";
-            document.getElementById('mobileInput').value = "+92 300 1234567";
-            document.getElementById('classInput').value = "BS Software Eng.";
-            document.getElementById('addressInput').value = "Township, Bannu, KP";
-            document.getElementById('nameInput').value = "MUHIB ULLAH";
-            
-            // Reset Images
-            document.getElementById('cardPhoto').src = "https://via.placeholder.com/150?text=PHOTO";
-            document.getElementById('cardLogo').src = "https://via.placeholder.com/100?text=LOGO";
-            resetImageTransform();
-            
-            setTheme('blue', document.querySelector('.theme-btn.bg-blue-600'));
-            setOrientation('landscape');
-            updateCard();
-        }
-
-        // --- EXISTING LOGIC PRESERVED ---
-        const countryData = {
-            'BD': { name: 'Bangladesh', city: 'Dhaka' },
-            'IN': { name: 'India', city: 'New Delhi' },
-            'GB': { name: 'United Kingdom', city: 'London' },
-            'UK': { name: 'United Kingdom', city: 'London' },
-            'NG': { name: 'Nigeria', city: 'Lagos' },
-            'PK': { name: 'Pakistan', city: 'Islamabad' },
-            'AU': { name: 'Australia', city: 'Sydney' }
-        };
-
-        async function detectLocation() {
-            const statusDiv = document.getElementById('detectionStatus');
-            statusDiv.classList.remove('hidden');
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                if(data.city) {
-                    document.getElementById('addressInput').value = `${data.city}, ${data.country_name}`;
-                    updateCard();
-                    highlightFlag(data.country_code);
-                }
-            } catch(e) { console.log(e); highlightFlag('PK'); } 
-            finally { statusDiv.classList.add('hidden'); }
-        }
-
-        function switchCountry(code) {
-            if(code === 'UK') code = 'GB';
-            const info = countryData[code] || { name: 'Unknown', city: 'Unknown' };
-            document.getElementById('addressInput').value = `${info.city}, ${info.name}`;
-            updateCard();
-            highlightFlag(code);
-        }
-
-        function highlightFlag(code) {
-            const ind = document.getElementById('countryIndicator');
-            ind.querySelector('img').src = `https://flagcdn.com/24x18/${code.toLowerCase()}.png`;
-        }
-
-        // Updated Random Generators with your specific arrays
+        // --- RANDOMIZATION LOGIC (RESTORED) ---
         function setRandom(type) {
-            if(type === 'college') document.getElementById('collegeNameInput').value = ["Oxford University", "Cambridge Institute", "Stanford Tech", "MIT Engineering"][Math.floor(Math.random()*4)];
-            if(type === 'id') document.getElementById('idInput').value = "ID-" + Math.floor(Math.random() * 999999);
-            if(type === 'mobile') document.getElementById('mobileInput').value = "+92 3" + Math.floor(Math.random()*99) + " " + Math.floor(Math.random()*9999999);
-            if(type === 'class') document.getElementById('classInput').value = ["BS CS", "BBA", "MBBS", "Electrical Eng."][Math.floor(Math.random()*4)];
-            if(type === 'address') document.getElementById('addressInput').value = ["Lahore, PK", "London, UK", "New York, USA", "Dubai, UAE"][Math.floor(Math.random()*4)];
-            if(type === 'name') document.getElementById('nameInput').value = ["Ali Khan", "Sarah Smith", "John Doe", "Fatima"][Math.floor(Math.random()*4)];
+            const r = (arr) => arr[Math.floor(Math.random() * arr.length)];
             
-            // Specific Images Preserved
+            if(type === 'college') document.getElementById('collegeNameInput').value = r(["Oxford University", "Cambridge Institute", "Stanford Tech", "MIT Engineering", "Harvard Academy"]);
+            if(type === 'id') document.getElementById('idInput').value = "ID-" + Math.floor(Math.random() * 999999);
+            if(type === 'name') document.getElementById('nameInput').value = r(["Ali Khan", "Sarah Smith", "John Doe", "Fatima", "Michael Chang", "Ayesha Malik"]);
+            if(type === 'mobile') document.getElementById('mobileInput').value = "+92 3" + Math.floor(Math.random()*99) + " " + Math.floor(Math.random()*9999999);
+            if(type === 'class') document.getElementById('classInput').value = r(["BS CS", "BBA", "MBBS", "Electrical Eng.", "Graphic Design"]);
+            if(type === 'address') document.getElementById('addressInput').value = r(["Lahore, PK", "London, UK", "New York, USA", "Dubai, UAE", "Toronto, CA"]);
+            
             if(type === 'photo') {
                 const photos = [
                     "https://i.ibb.co/4wyCZZz9/download-removebg-preview.png",
@@ -695,7 +629,7 @@
                     "https://i.ibb.co/vvm48vb0/images-removebg-preview-1.png",
                     "https://i.ibb.co/mCnjKKXs/imagess-removebg-preview.png"
                 ];
-                document.getElementById('cardPhoto').src = photos[Math.floor(Math.random() * photos.length)];
+                document.getElementById('cardPhoto').src = r(photos);
                 resetImageTransform();
             }
             if(type === 'logo') {
@@ -705,7 +639,7 @@
                     "https://i.ibb.co/kjFV22c/download-removebg-preview-removebg-preview.png",
                     "https://i.ibb.co/CszP8Ch5/images-removebg-preview.png"
                 ];
-                document.getElementById('cardLogo').src = logos[Math.floor(Math.random() * logos.length)];
+                document.getElementById('cardLogo').src = r(logos);
             }
             if(type === 'signature') {
                 const signatures = [
@@ -719,11 +653,221 @@
                     "https://i.ibb.co/pjWMbHY8/image-removebg-preview-removebg-preview-removebg-preview.png",
                     "https://i.ibb.co/7t7qJmcC/download-removebg-preview-removebg-preview-removebg-preview-1.png"
                 ];
-                document.getElementById('cardSig').src = signatures[Math.floor(Math.random() * signatures.length)];
+                document.getElementById('cardSig').src = r(signatures);
             }
-            updateCard();
+
+            handleInput(); // Save and update
         }
 
+        // --- WEBCAM LOGIC ---
+        async function startWebcam() {
+            const modal = document.getElementById('webcamModal');
+            const video = document.getElementById('webcamVideo');
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                modal.classList.remove('hidden');
+            } catch (err) {
+                alert("Could not access camera. Please allow permissions.");
+                console.error(err);
+            }
+        }
+
+        function stopWebcam() {
+            const modal = document.getElementById('webcamModal');
+            const video = document.getElementById('webcamVideo');
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            modal.classList.add('hidden');
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('webcamVideo');
+            const canvas = document.getElementById('webcamCanvas');
+            const context = canvas.getContext('2d');
+
+            // Set canvas dim matches video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Flip horizontally to match mirror view
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('cardPhoto').src = dataURL;
+            resetImageTransform(); // Reset zoom on new photo
+            
+            stopWebcam();
+        }
+
+        // --- BACK SIDE & FONT LOGIC ---
+        function toggleSide(side) {
+            currentSide = side;
+            const front = document.getElementById('cardFront');
+            const back = document.getElementById('cardBack');
+            const btnF = document.getElementById('btnShowFront');
+            const btnB = document.getElementById('btnShowBack');
+            const dlText = document.getElementById('dlSideText');
+
+            if(side === 'front') {
+                front.classList.remove('hidden');
+                back.classList.add('hidden');
+                back.classList.remove('flex'); // Remove flex when hidden
+                
+                // Button Styling
+                btnF.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnF.classList.remove('text-gray-500');
+                btnB.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnB.classList.add('text-gray-500');
+                
+                dlText.innerText = "Front Side";
+            } else {
+                front.classList.add('hidden');
+                back.classList.remove('hidden');
+                back.classList.add('flex'); // Add flex for layout
+                
+                // Button Styling
+                btnB.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnB.classList.remove('text-gray-500');
+                btnF.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                btnF.classList.add('text-gray-500');
+                
+                dlText.innerText = "Back Side";
+            }
+        }
+
+        function setFont(fontClass) {
+            const container = document.getElementById('idCardPreview');
+            // Remove all known font classes
+            container.classList.remove('font-poppins', 'font-serif', 'font-mono', 'font-hand');
+            // Add new
+            container.classList.add(fontClass);
+            
+            saveLocalData();
+        }
+
+
+        // --- CORE UPDATE LOGIC ---
+        function updateCard() {
+            // Front texts
+            setText('cardCollege', 'collegeNameInput');
+            setText('cardName', 'nameInput');
+            setText('cardId', 'idInput');
+            setText('cardClass', 'classInput');
+            setText('cardMobile', 'mobileInput');
+            setText('cardAddressHeader', 'addressInput');
+            setText('cardWebsite', 'websiteInput');
+            setText('cardBlood', 'bloodGroupInput');
+            setText('cardEmail', 'websiteInput'); // quick fix to use website input for email text if needed, or separate.
+
+            // Back texts
+            const college = document.getElementById('collegeNameInput').value;
+            const address = document.getElementById('addressInput').value;
+            const mobile = document.getElementById('mobileInput').value;
+            const id = document.getElementById('idInput').value;
+
+            // Update Back Side Elements
+            document.querySelectorAll('.college-name-ref').forEach(el => el.textContent = college);
+            document.getElementById('backAddress').textContent = address;
+            document.getElementById('backMobile').textContent = mobile;
+            document.getElementById('backId').textContent = id;
+
+            // Dates
+            const issue = new Date(document.getElementById('issueDateInput').value);
+            const valid = new Date(document.getElementById('validDateInput').value);
+            let vText = "";
+            if(!isNaN(issue)) vText += formatMY(issue);
+            if(!isNaN(valid)) vText += " - " + formatMY(valid);
+            document.getElementById('cardValidity').textContent = vText;
+
+            // QR
+            generateQRCode();
+        }
+
+        function setText(tid, sid) {
+            const el = document.getElementById(tid);
+            const input = document.getElementById(sid);
+            if(el && input) el.textContent = input.value;
+        }
+
+        function formatMY(date) {
+            return (date.getMonth()+1).toString().padStart(2,'0') + "/" + date.getFullYear().toString().slice(-2);
+        }
+
+        function generateQRCode() {
+            const id = document.getElementById('idInput').value;
+            const name = document.getElementById('nameInput').value;
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: `${id}|${name}`,
+                width: 48, height: 48,
+                colorDark : "#000000", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+        }
+
+        // --- STYLE & LAYOUT ---
+        function setTheme(color, btn) {
+            currentTheme = color;
+            const theme = themeColors[color];
+            
+            const header = document.getElementById('cardHeader');
+            const badge = document.getElementById('cardBadge');
+            const web = document.getElementById('cardWebsite');
+
+            header.className = `absolute top-0 left-0 w-full h-3 z-10 transition-colors duration-300 bg-gradient-to-r ${theme.from} ${theme.to}`;
+            badge.className = `inline-block text-white text-[8px] px-2 py-0.5 rounded shadow-sm font-bold mb-1 tracking-wider transition-colors duration-300 ${theme.badge}`;
+            web.className = `text-[8px] font-bold mb-1 transition-colors duration-300 ${theme.text}`;
+
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            
+            saveLocalData();
+        }
+
+        function setOrientation(mode) {
+            currentOrientation = mode;
+            const card = document.getElementById('idCardPreview');
+            const content = document.getElementById('cardContent');
+            const leftSec = document.getElementById('leftSection');
+            const rightSec = document.getElementById('rightSection');
+            const btnL = document.getElementById('btnLandscape');
+            const btnP = document.getElementById('btnPortrait');
+
+            if(mode === 'landscape') {
+                card.classList.replace('card-portrait', 'card-landscape');
+                
+                // Content Layout
+                content.className = "relative z-10 flex h-full pt-5 pb-2 px-5 gap-4"; 
+                leftSec.className = "w-[35%] flex flex-col items-center pt-2 border-r border-dashed border-slate-300 pr-3 transition-all";
+                rightSec.className = "w-[65%] flex flex-col pt-1 pl-1 transition-all";
+                
+                // Button Style
+                btnL.className = "px-2 py-1 rounded bg-slate-200 font-bold text-slate-700";
+                btnP.className = "px-2 py-1 rounded hover:bg-slate-100 text-slate-500";
+            } else {
+                card.classList.replace('card-landscape', 'card-portrait');
+                
+                // Content Layout
+                content.className = "relative z-10 flex flex-col h-full pt-5 pb-4 px-6 gap-2";
+                leftSec.className = "w-full flex flex-col items-center border-b border-dashed border-slate-300 pb-3 transition-all";
+                rightSec.className = "w-full flex flex-col pt-2 text-center items-center transition-all";
+                
+                // Button Style
+                btnP.className = "px-2 py-1 rounded bg-slate-200 font-bold text-slate-700";
+                btnL.className = "px-2 py-1 rounded hover:bg-slate-100 text-slate-500";
+            }
+        }
+
+        // --- IMAGE HELPERS ---
         function handleImage(input, imgId) {
             if (input.files && input.files[0]) {
                 const r = new FileReader();
@@ -735,6 +879,26 @@
             }
         }
 
+        function updateImageTransform() {
+            imgScale = document.getElementById('zoomRange').value;
+            applyTransform();
+        }
+        function resetImageTransform() {
+            imgScale = 1; imgX = 0; imgY = 0;
+            document.getElementById('zoomRange').value = 1;
+            applyTransform();
+        }
+        function applyTransform() {
+            document.getElementById('cardPhoto').style.transform = `scale(${imgScale}) translate(${imgX}px, ${imgY}px)`;
+        }
+
+        // --- UTILS ---
+        function resetForm() {
+            if(!confirm("Reset everything?")) return;
+            localStorage.removeItem('eduCardData');
+            location.reload();
+        }
+
         function downloadCard() {
             const card = document.getElementById("idCardPreview");
             const btn = event.currentTarget;
@@ -743,11 +907,49 @@
             
             html2canvas(card, { scale: 3, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `ID-${document.getElementById('idInput').value}.png`;
+                link.download = `ID-${document.getElementById('idInput').value}-${currentSide}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
                 btn.innerHTML = originalHTML;
             });
+        }
+
+        async function detectLocation() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if(data.city) {
+                    // Only set if input is empty or default
+                    const addr = document.getElementById('addressInput');
+                    if(addr.value.includes("Township")) {
+                        addr.value = `${data.city}, ${data.country_name}`;
+                        updateCard();
+                    }
+                    if(data.country_code) highlightFlag(data.country_code);
+                }
+            } catch(e) {}
+        }
+        
+        const countryData = {
+            'BD': { name: 'Bangladesh', city: 'Dhaka' },
+            'IN': { name: 'India', city: 'New Delhi' },
+            'GB': { name: 'United Kingdom', city: 'London' },
+            'UK': { name: 'United Kingdom', city: 'London' },
+            'NG': { name: 'Nigeria', city: 'Lagos' },
+            'PK': { name: 'Pakistan', city: 'Islamabad' },
+            'AU': { name: 'Australia', city: 'Sydney' }
+        };
+
+        function switchCountry(code) {
+             const info = countryData[code] || { name: 'Unknown', city: 'Unknown' };
+             document.getElementById('addressInput').value = `${info.city}, ${info.name}`;
+             updateCard();
+             highlightFlag(code);
+        }
+
+        function highlightFlag(code) {
+            const ind = document.getElementById('countryIndicator');
+            if(ind) ind.querySelector('img').src = `https://flagcdn.com/24x18/${code.toLowerCase()}.png`;
         }
     </script>
 </body>
